@@ -1,0 +1,51 @@
+{% extends 'store/base.html' %}
+
+{% block title %}{{ game.title }} - Game Store{% endblock %}
+
+{% block content %}
+    <div class="game-detail" style="display: flex; gap: 20px;">
+        <div class="game-image" style="flex: 1;">
+            {% if game.cover_image_url %}
+                <img src="{{ game.cover_image_url }}" alt="{{ game.title }} cover" style="width: 100%; max-width: 400px; height: auto; border-radius: 5px;">
+            {% else %}
+                <div style="width: 100%; max-width: 400px; height: 300px; background-color: #eee; display:flex; align-items:center; justify-content:center; border-radius: 5px;">No Image Available</div>
+            {% endif %}
+        </div>
+        <div class="game-info" style="flex: 2;">
+            <h2>{{ game.title }}</h2>
+            <p><strong>Platform:</strong> {{ game.platform.name }}</p>
+            <p><strong>Genres:</strong>
+                {% for genre in game.genres.all %}
+                    {{ genre.name }}{% if not forloop.last %}, {% endif %}
+                {% empty %}
+                    N/A
+                {% endfor %}
+            </p>
+            <p><strong>Release Date:</strong> {{ game.release_date|date:"F d, Y" }}</p>
+            <p><strong>Price:</strong> ${{ game.price }}</p>
+            <p><strong>Stock:</strong>
+                {% if game.stock > 0 %}
+                    {{ game.stock }} available
+                {% else %}
+                    Out of stock
+                {% endif %}
+            </p>
+            <hr>
+            <h3>Description:</h3>
+            <p>{{ game.description|linebreaks }}</p>
+
+            {% if game.stock > 0 %}
+                <form action="{% url 'store:add_to_cart' game.id %}" method="post" style="margin-top: 15px;">
+                    {% csrf_token %}
+                    <label for="quantity">Quantity:</label>
+                    <input type="number" name="quantity" value="1" min="1" max="{{ game.stock }}" style="width: 60px; padding: 5px; margin-right: 10px;">
+                    <button type="submit" style="padding: 10px 15px; background-color: #28a745; color: white; border: none; border-radius: 3px; cursor: pointer;">Add to Cart</button>
+                </form>
+            {% else %}
+                <p style="color: red; font-weight: bold;">This game is currently out of stock.</p>
+            {% endif %}
+            <br>
+            <a href="{% url 'store:game_list' %}" style="display: inline-block; margin-top: 20px;">Back to Game List</a>
+        </div>
+    </div>
+{% endblock %}

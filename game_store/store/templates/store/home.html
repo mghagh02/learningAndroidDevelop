@@ -1,0 +1,13 @@
+{% extends 'store/base.html' %}
+
+{% block title %}Welcome - Game Store{% endblock %}
+
+{% block content %}
+    <h1>Welcome to the Game Store!</h1>
+    <p>Your one-stop shop for PlayStation and Xbox games, and the latest gaming news.</p>
+    {% if user.is_authenticated %}
+        <p>You are logged in as {{ user.username }}.</p>
+    {% else %}
+        <p>Please <a href="{% url 'store:login' %}">login</a> or <a href="{% url 'store:register' %}">register</a>.</p>
+    {% endif %}
+{% endblock %}

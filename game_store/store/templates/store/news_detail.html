@@ -1,0 +1,23 @@
+{% extends 'store/base.html' %}
+
+{% block title %}{{ article.title }} - Game Store News{% endblock %}
+
+{% block content %}
+    <div class="news-article-detail">
+        <h2>{{ article.title }}</h2>
+        <p style="color: #555; font-size: 0.9em; margin-bottom: 20px;">
+            Published on {{ article.publication_date|date:"F d, Y P" }}
+            {% if article.author %}
+                by {{ article.author.username }}
+            {% endif %}
+        </p>
+        {% if article.image_url %}
+            <img src="{{ article.image_url }}" alt="{{ article.title }}" style="width: 100%; max-width: 600px; height: auto; border-radius: 5px; margin-bottom: 20px;">
+        {% endif %}
+        <div class="article-content" style="line-height: 1.6;">
+            {{ article.content|linebreaksbr }} {# Use linebreaksbr if content is plain text, or just {{ article.content|safe }} if it's HTML #}
+        </div>
+        <hr style="margin-top: 30px; margin-bottom: 20px;">
+        <a href="{% url 'store:news_list' %}" style="display: inline-block;">Back to News List</a>
+    </div>
+{% endblock %}

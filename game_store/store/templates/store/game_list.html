@@ -1,0 +1,55 @@
+{% extends 'store/base.html' %}
+
+{% block title %}Games - Game Store{% endblock %}
+
+{% block content %}
+    <h2>Our Games</h2>
+
+    <form method="get" action="{% url 'store:game_list' %}" class="filter-form">
+        <label for="platform">Platform:</label>
+        <select name="platform" id="platform" onchange="this.form.submit()">
+            <option value="">All Platforms</option>
+            {% for p in platforms %}
+                <option value="{{ p.name }}" {% if p.name == selected_platform %}selected{% endif %}>{{ p.name }}</option>
+            {% endfor %}
+        </select>
+
+        <label for="genre">Genre:</label>
+        <select name="genre" id="genre" onchange="this.form.submit()">
+            <option value="">All Genres</option>
+            {% for g in genres %}
+                <option value="{{ g.name }}" {% if g.name == selected_genre %}selected{% endif %}>{{ g.name }}</option>
+            {% endfor %}
+        </select>
+        <noscript><button type="submit">Filter</button></noscript>
+         <a href="{% url 'store:game_list' %}" class="clear-filters-link">Clear Filters</a>
+    </form>
+    <hr>
+
+    <div class="game-grid">
+        {% for game in games %}
+            <div class="game-card">
+                {% if game.cover_image_url %}
+                    <img src="{{ game.cover_image_url }}" alt="{{ game.title }} cover">
+                {% else %}
+                    <div class="no-image-placeholder">No Image</div>
+                {% endif %}
+                <h3><a href="{% url 'store:game_detail' game.id %}">{{ game.title }}</a></h3>
+                <p><strong>Platform:</strong> {{ game.platform.name }}</p>
+                <p><strong>Genres:</strong>
+                    {% for genre in game.genres.all %}
+                        {{ genre.name }}{% if not forloop.last %}, {% endif %}
+                    {% empty %}
+                        N/A
+                    {% endfor %}
+                </p>
+                <p class="price"><strong>Price:</strong> ${{ game.price }}</p>
+                <p><strong>Stock:</strong> {{ game.stock }}</p>
+                <a href="{% url 'store:game_detail' game.id %}" class="button-link view-details-button">View Details</a>
+                <!-- Add to cart button will be added later -->
+            </div>
+        {% empty %}
+            <p>No games found matching your criteria.</p>
+        {% endfor %}
+    </div>
+{% endblock %}

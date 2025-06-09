@@ -1,0 +1,45 @@
+{% extends 'store/base.html' %}
+
+{% block title %}Checkout - Game Store{% endblock %}
+
+{% block content %}
+    <h2>Checkout Summary</h2>
+    {% if cart_items %}
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+            <thead>
+                <tr>
+                    <th style="text-align: left; padding: 8px; border-bottom: 1px solid #ddd;">Product</th>
+                    <th style="text-align: center; padding: 8px; border-bottom: 1px solid #ddd;">Quantity</th>
+                    <th style="text-align: right; padding: 8px; border-bottom: 1px solid #ddd;">Price</th>
+                    <th style="text-align: right; padding: 8px; border-bottom: 1px solid #ddd;">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in cart_items %}
+                    <tr>
+                        <td style="padding: 8px; border-bottom: 1px solid #eee;">{{ item.title }}</td>
+                        <td style="text-align: center; padding: 8px; border-bottom: 1px solid #eee;">{{ item.quantity }}</td>
+                        <td style="text-align: right; padding: 8px; border-bottom: 1px solid #eee;">${{ item.price|floatformat:2 }}</td>
+                        <td style="text-align: right; padding: 8px; border-bottom: 1px solid #eee;">${{ item.total_item_price|floatformat:2 }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="3" style="text-align: right; padding: 10px; font-weight: bold; border-top: 2px solid #ddd;">Grand Total:</td>
+                    <td style="text-align: right; padding: 10px; font-weight: bold; border-top: 2px solid #ddd;">${{ total_cart_price|floatformat:2 }}</td>
+                </tr>
+            </tfoot>
+        </table>
+
+        <form method="post" action="{% url 'store:checkout' %}">
+            {% csrf_token %}
+            <p>Confirm your order. Payment processing is not yet implemented.</p>
+            <button type="submit" style="padding: 12px 25px; background-color: #28a745; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 1.1em;">Place Order</button>
+        </form>
+        <p style="margin-top: 20px;"><a href="{% url 'store:cart_detail' %}">Back to Cart</a></p>
+    {% else %}
+        <p>Your cart is empty. Nothing to checkout.</p>
+        <p><a href="{% url 'store:game_list' %}">Go Shopping!</a></p>
+    {% endif %}
+{% endblock %}

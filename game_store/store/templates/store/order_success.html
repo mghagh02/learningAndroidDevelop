@@ -1,0 +1,18 @@
+{% extends 'store/base.html' %}
+
+{% block title %}Order Successful - Game Store{% endblock %}
+
+{% block content %}
+    <h2>Thank You For Your Order!</h2>
+    <p>Your order (ID: {{ order.id }}) has been placed successfully.</p>
+    <p>We will not actually process payment or ship anything, as this is a demo.</p>
+    <h3>Order Summary:</h3>
+    <ul>
+        {% for item in order.items.all %}
+            <li>{{ item.quantity }} x {{ item.game.title }} ({{ item.game.platform.name }}) @ ${{ item.price_at_purchase|floatformat:2 }} each</li>
+        {% endfor %}
+    </ul>
+    <p><strong>Total Paid: ${{ order.total_price|floatformat:2 }}</strong></p> {# Assuming total_price is a property or field on Order model #}
+    <p><a href="{% url 'store:game_list' %}">Continue Shopping</a></p>
+    {# Optionally, link to user's order history page if that exists #}
+{% endblock %}
