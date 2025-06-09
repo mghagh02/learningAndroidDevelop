@@ -1,13 +1,94 @@
 {% extends 'store/base.html' %}
+{% load i18n %}
+{% load static %}
 
-{% block title %}Welcome - Game Store{% endblock %}
+{% block title %}{% translate 'Welcome' %} - {% translate 'Game Store' %}{% endblock %}
 
 {% block content %}
-    <h1>Welcome to the Game Store!</h1>
-    <p>Your one-stop shop for PlayStation and Xbox games, and the latest gaming news.</p>
-    {% if user.is_authenticated %}
-        <p>You are logged in as {{ user.username }}.</p>
-    {% else %}
-        <p>Please <a href="{% url 'store:login' %}">login</a> or <a href="{% url 'store:register' %}">register</a>.</p>
-    {% endif %}
+<div class="container">
+    <!-- Hero Section -->
+    <div class="row align-items-center my-5 p-5 bg-light rounded-3 shadow-sm">
+        <div class="col-lg-7 text-lg-end text-center"> {# text-lg-start for LTR #}
+            <h1 class="display-4 fw-bold">{% translate 'The Ultimate Game Store' %}</h1>
+            <p class="lead my-3">{% translate 'Discover the latest PlayStation and Xbox games, exclusive deals, and breaking news from the gaming world. Your adventure starts here!' %}</p>
+            <div class="d-grid gap-2 d-md-flex justify-content-md-start justify-content-center"> {# justify-content-md-end for LTR #}
+                <a href="{% url 'store:game_list' %}" class="btn btn-primary btn-lg px-4 me-md-2">{% translate 'Browse All Games' %}</a>
+                <a href="{% url 'store:news_list' %}" class="btn btn-outline-secondary btn-lg px-4">{% translate 'Latest News' %}</a>
+            </div>
+        </div>
+        <div class="col-lg-5 mt-4 mt-lg-0 text-center">
+            {# Placeholder for a hero image - replace with actual image #}
+            <img src="https://via.placeholder.com/400x300.png?text={% translate 'Awesome+Game+Collage' %}" class="img-fluid rounded-3 shadow" alt="{% translate 'Featured Games' %}">
+        </div>
+    </div>
+
+    <!-- Featured Games Section -->
+    <div class="row my-5">
+        <h2 class="text-center mb-4">{% translate 'Featured Games' %}</h2>
+        {# This part needs actual game data passed from the view.
+           For now, it's a placeholder structure.
+           The view for 'home' needs to be updated to pass a list of 'featured_games'.
+        #}
+        {% if featured_games %}
+            {% for game in featured_games|slice:":4" %} {# Display up to 4 featured games #}
+            <div class="col-md-6 col-lg-3 mb-4">
+                <div class="card h-100 shadow-sm">
+                    <a href="{% url 'store:game_detail' game.id %}">
+                        {% if game.cover_image_url %}
+                            <img src="{{ game.cover_image_url }}" class="card-img-top" alt="{{ game.title }}" style="height: 200px; object-fit: cover;">
+                        {% else %}
+                            <img src="https://via.placeholder.com/300x200.png?text={{ game.title|urlencode }}" class="card-img-top" alt="{{ game.title }}" style="height: 200px; object-fit: cover;">
+                        {% endif %}
+                    </a>
+                    <div class="card-body d-flex flex-column">
+                        <h5 class="card-title"><a href="{% url 'store:game_detail' game.id %}" class="text-decoration-none text-dark">{{ game.title }}</a></h5>
+                        <p class="card-text text-muted small">{{ game.platform.name }}</p>
+                        <p class="card-text fs-5 fw-bold text-primary mt-auto mb-2">${{ game.price }}</p> {# mt-auto pushes price to bottom #}
+                        <a href="{% url 'store:game_detail' game.id %}" class="btn btn-sm btn-outline-primary">{% translate 'View Details' %}</a>
+                        {# Add to cart form/button can be added here too if desired #}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="col">
+                <p class="text-center text-muted">{% translate 'No featured games available at the moment.' %}</p>
+            </div>
+        {% endif %}
+         <div class="text-center mt-3">
+            <a href="{% url 'store:game_list' %}" class="btn btn-outline-secondary">{% translate 'See All Games' %}</a>
+        </div>
+    </div>
+
+    <!-- Latest News Teaser Section -->
+    <div class="row my-5 p-4 bg-light rounded-3">
+        <h2 class="text-center mb-4">{% translate 'Gaming News Highlights' %}</h2>
+        {# This part needs actual news data passed from the view for 'latest_news' #}
+        {% if latest_news %}
+            {% for article in latest_news|slice:":3" %} {# Display up to 3 news items #}
+            <div class="col-md-4 mb-3">
+                <div class="card h-100">
+                     {% if article.image_url %}
+                        <a href="{% url 'store:news_detail' article.id %}"><img src="{{ article.image_url }}" class="card-img-top" alt="{{ article.title }}" style="height: 180px; object-fit: cover;"></a>
+                    {% endif %}
+                    <div class="card-body">
+                        <h5 class="card-title"><a href="{% url 'store:news_detail' article.id %}" class="text-decoration-none text-dark">{{ article.title|truncatewords:10 }}</a></h5>
+                        <p class="card-text small text-muted">{{ article.publication_date|date:"SHORT_DATE_FORMAT" }}</p>
+                        <p class="card-text">{{ article.content|truncatewords_html:20|safe }}</p>
+                        <a href="{% url 'store:news_detail' article.id %}" class="btn btn-sm btn-link p-0">{% translate 'Read More' %} &raquo;</a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+             <div class="col">
+                <p class="text-center text-muted">{% translate 'No news highlights available.' %}</p>
+            </div>
+        {% endif %}
+        <div class="text-center mt-3">
+            <a href="{% url 'store:news_list' %}" class="btn btn-outline-secondary">{% translate 'All Gaming News' %}</a>
+        </div>
+    </div>
+
+</div>
 {% endblock %}

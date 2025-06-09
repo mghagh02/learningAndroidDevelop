@@ -5,6 +5,7 @@ from django.db import transaction
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import login
 from django.contrib import messages
+from django.utils.translation import gettext_lazy as _
 from .models import Game, Genre, Platform, NewsArticle, Order, OrderItem # Make sure models are imported
 
 def register(request):
@@ -13,7 +14,7 @@ def register(request):
         if form.is_valid():
             user = form.save()
             login(request, user) # Log the user in directly after registration
-            messages.success(request, 'Registration successful. You are now logged in.')
+            messages.success(request, _('Registration successful. You are now logged in.'))
             return redirect('/') # Redirect to a home page, adjust as needed
         else:
             for field in form:
@@ -25,9 +26,14 @@ def register(request):
         form = UserCreationForm()
     return render(request, 'registration/register.html', {'form': form})
 
-# Placeholder for home view, to make redirect('/') work
 def home(request):
-    return render(request, 'store/home.html')
+    featured_games = Game.objects.filter(stock__gt=0).order_by('-release_date', '?')[:4] # Example: 4 random recent in-stock games
+    latest_news = NewsArticle.objects.all().order_by('-publication_date')[:3] # 3 latest news
+    context = {
+        'featured_games': featured_games,
+        'latest_news': latest_news
+    }
+    return render(request, 'store/home.html', context)
 
 def game_list(request):
     games = Game.objects.all().order_by('-release_date') # Fetch all games, newest first
@@ -92,21 +98,21 @@ def add_to_cart(request, game_id):
         if game.stock > 0 : # Basic check
             cart[game_id_str] = {'quantity': quantity, 'price': str(game.price), 'title': game.title, 'platform': game.platform.name}
         else:
-            messages.error(request, f"{game.title} is out of stock.")
+            messages.error(request, _("{game_title} is out of stock.").format(game_title=game.title))
             # Decide where to redirect if out of stock - maybe back to product page or game list
             return redirect(request.META.get('HTTP_REFERER', 'store:game_list'))
 
 
     # Ensure quantity does not exceed stock
     if game.stock < cart[game_id_str]['quantity']:
-        messages.warning(request, f"Reduced quantity for {game.title} due to limited stock ({game.stock} available).")
+        messages.warning(request, _("Reduced quantity for {game_title} due to limited stock ({stock} available).").format(game_title=game.title, stock=game.stock))
         cart[game_id_str]['quantity'] = game.stock
 
     if cart[game_id_str]['quantity'] <= 0: # If quantity becomes zero or less, remove item
         del cart[game_id_str]
-        messages.info(request, f"{game.title} removed from cart.")
+        messages.info(request, _("{game_title} removed from cart.").format(game_title=game.title))
     else:
-        messages.success(request, f"{quantity} of {game.title} added/updated in your cart.")
+        messages.success(request, _("{quantity} of {game_title} added/updated in your cart.").format(quantity=quantity, game_title=game.title))
 
     save_cart(request, cart)
     return redirect(request.META.get('HTTP_REFERER', 'store:cart_detail')) # Redirect to cart page or previous page
@@ -119,9 +125,9 @@ def remove_from_cart(request, game_id):
 
     if game_id_str in cart:
         del cart[game_id_str]
-        messages.success(request, "Item removed from your cart.")
+        messages.success(request, _("Item removed from your cart."))
     else:
-        messages.info(request, "Item not found in your cart.")
+        messages.info(request, _("Item not found in your cart."))
 
     save_cart(request, cart)
     return redirect('store:cart_detail')
@@ -137,16 +143,16 @@ def update_cart(request, game_id):
     if game_id_str in cart:
         if quantity > 0:
             if quantity > game.stock:
-                messages.warning(request, f"Cannot set quantity for {game.title} to {quantity}. Only {game.stock} available. Quantity set to {game.stock}.")
+                messages.warning(request, _("Cannot set quantity for {game_title} to {quantity}. Only {stock} available. Quantity set to {stock}.").format(game_title=game.title, quantity=quantity, stock=game.stock))
                 cart[game_id_str]['quantity'] = game.stock
             else:
                 cart[game_id_str]['quantity'] = quantity
-                messages.success(request, f"Quantity for {game.title} updated to {quantity}.")
+                messages.success(request, _("Quantity for {game_title} updated to {quantity}.").format(game_title=game.title, quantity=quantity))
         else: # Quantity is 0 or less, so remove the item
             del cart[game_id_str]
-            messages.success(request, f"{game.title} removed from your cart.")
+            messages.success(request, _("{game_title} removed from cart.").format(game_title=game.title))
     else:
-        messages.info(request, "Item not found in your cart to update.")
+        messages.info(request, _("Item not found in your cart to update."))
 
     save_cart(request, cart)
     return redirect('store:cart_detail')
@@ -183,7 +189,7 @@ def cart_detail(request):
 def checkout(request):
     cart = get_cart(request)
     if not cart:
-        messages.error(request, "Your cart is empty. Please add items before checking out.")
+        messages.error(request, _("Your cart is empty. Please add items before checking out."))
         return redirect('store:cart_detail')
 
     # Calculate total for display on checkout page (could also be passed from cart_detail if preferred)
@@ -197,7 +203,7 @@ def checkout(request):
         quantity = item_data['quantity']
 
         if quantity > game.stock:
-            messages.error(request, f"Sorry, the quantity for {game.title} exceeds available stock ({game.stock}). Please update your cart.")
+            messages.error(request, _("Sorry, the quantity for {game_title} exceeds available stock ({stock}). Please update your cart.").format(game_title=game.title, stock=game.stock))
             return redirect('store:cart_detail')
 
         price = float(item_data['price'])
@@ -243,14 +249,14 @@ def checkout(request):
                 request.session['cart'] = {}
                 request.session.modified = True
 
-                messages.success(request, "Your order has been placed successfully!")
+                messages.success(request, _("Your order has been placed successfully!"))
                 return redirect('store:order_success', order_id=order.id)
 
         except ValueError as e: # Catch stock error specifically
-            messages.error(request, str(e))
+            messages.error(request, str(e)) # This error comes from a raise with f-string, already formatted. For custom error, use _().
             return redirect('store:cart_detail') # Redirect to cart to resolve stock issue
         except Exception as e:
-            messages.error(request, f"An unexpected error occurred: {str(e)}. Please try again.")
+            messages.error(request, _("An unexpected error occurred: {error_message}. Please try again.").format(error_message=str(e)))
             # Log the error e for admin review
             return redirect('store:checkout') # Or some other error page
 

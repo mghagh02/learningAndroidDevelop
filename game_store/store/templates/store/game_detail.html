@@ -1,51 +1,59 @@
 {% extends 'store/base.html' %}
+{% load i18n %}
 
-{% block title %}{{ game.title }} - Game Store{% endblock %}
+{% block title %}{{ game.title }} - {% translate "Game Store" %}{% endblock %}
 
 {% block content %}
-    <div class="game-detail" style="display: flex; gap: 20px;">
-        <div class="game-image" style="flex: 1;">
+    <div class="row g-4 py-3">
+        <div class="col-lg-5 text-center">
             {% if game.cover_image_url %}
-                <img src="{{ game.cover_image_url }}" alt="{{ game.title }} cover" style="width: 100%; max-width: 400px; height: auto; border-radius: 5px;">
+                <img src="{{ game.cover_image_url }}" class="img-fluid rounded shadow-sm" alt="{{ game.title }} {% translate 'cover' %}" style="max-height: 500px;">
             {% else %}
-                <div style="width: 100%; max-width: 400px; height: 300px; background-color: #eee; display:flex; align-items:center; justify-content:center; border-radius: 5px;">No Image Available</div>
+                <img src="https://via.placeholder.com/400x500.png?text={{ game.title|urlencode }}" class="img-fluid rounded shadow-sm" alt="{{ game.title }} {% translate 'No Image Available' %}">
             {% endif %}
         </div>
-        <div class="game-info" style="flex: 2;">
-            <h2>{{ game.title }}</h2>
-            <p><strong>Platform:</strong> {{ game.platform.name }}</p>
-            <p><strong>Genres:</strong>
+        <div class="col-lg-7">
+            <h1 class="display-5">{{ game.title }}</h1>
+            <p class="text-muted"><strong>{% translate "Platform" %}:</strong> {{ game.platform.name }}</p>
+            <p class="text-muted">
+                <strong>{% translate "Genres" %}:</strong>
                 {% for genre in game.genres.all %}
                     {{ genre.name }}{% if not forloop.last %}, {% endif %}
                 {% empty %}
-                    N/A
+                    {% translate "N/A" %}
                 {% endfor %}
             </p>
-            <p><strong>Release Date:</strong> {{ game.release_date|date:"F d, Y" }}</p>
-            <p><strong>Price:</strong> ${{ game.price }}</p>
-            <p><strong>Stock:</strong>
+            <p class="text-muted"><strong>{% translate "Release Date" %}:</strong> {{ game.release_date|date:"F d, Y" }}</p>
+            <p class="fs-3 fw-bold text-primary my-3">${{ game.price }}</p>
+            <p class="stock-status {% if game.stock > 0 %}text-success{% else %}text-danger{% endif %}">
+                <strong>{% translate "Stock" %}:</strong>
                 {% if game.stock > 0 %}
-                    {{ game.stock }} available
+                    {{ game.stock }} {% translate "available" %}
                 {% else %}
-                    Out of stock
+                    {% translate "Out of stock" %}
                 {% endif %}
             </p>
-            <hr>
-            <h3>Description:</h3>
-            <p>{{ game.description|linebreaks }}</p>
 
             {% if game.stock > 0 %}
-                <form action="{% url 'store:add_to_cart' game.id %}" method="post" style="margin-top: 15px;">
+                <form action="{% url 'store:add_to_cart' game.id %}" method="post" class="row g-2 align-items-center my-3">
                     {% csrf_token %}
-                    <label for="quantity">Quantity:</label>
-                    <input type="number" name="quantity" value="1" min="1" max="{{ game.stock }}" style="width: 60px; padding: 5px; margin-right: 10px;">
-                    <button type="submit" style="padding: 10px 15px; background-color: #28a745; color: white; border: none; border-radius: 3px; cursor: pointer;">Add to Cart</button>
+                    <div class="col-auto">
+                        <label for="quantity" class="form-label visually-hidden">{% translate "Quantity" %}:</label>
+                        <input type="number" name="quantity" value="1" min="1" max="{{ game.stock }}" class="form-control" style="width: 80px;">
+                    </div>
+                    <div class="col-auto">
+                        <button type="submit" class="btn btn-success btn-lg">{% translate "Add to Cart" %}</button>
+                    </div>
                 </form>
             {% else %}
-                <p style="color: red; font-weight: bold;">This game is currently out of stock.</p>
+                <p class="alert alert-danger">{% translate "This game is currently out of stock." %}</p>
             {% endif %}
-            <br>
-            <a href="{% url 'store:game_list' %}" style="display: inline-block; margin-top: 20px;">Back to Game List</a>
+
+            <hr class="my-4">
+            <h3>{% translate "Description" %}:</h3>
+            <p>{{ game.description|linebreaks }}</p>
+
+            <p class="mt-4"><a href="{% url 'store:game_list' %}" class="btn btn-outline-secondary">{% translate "Back to Game List" %}</a></p>
         </div>
     </div>
 {% endblock %}
