@@ -1,0 +1,242 @@
+//@version=6
+indicator("Phase 3a: LIT MTF + Sessions", overlay=true, shorttitle="LIT_Sess_v3a")
+
+// --- Inputs ---
+// General Settings
+int htf_leftBars = input.int(5, title="HTF Swing Left Bars", minval=1, group="HTF Settings")
+int htf_rightBars = input.int(5, title="HTF Swing Right Bars", minval=1, group="HTF Settings")
+
+// Market Structure (HTF)
+color htf_colorSwingHigh = input.color(color.new(color.red, 0), title="HTF Swing High Color", group="HTF Settings")
+color htf_colorSwingLow = input.color(color.new(color.lime, 0), title="HTF Swing Low Color", group="HTF Settings")
+color htf_colorBos = input.color(color.new(color.blue, 0), title="HTF BoS/CHoCH Line Color", group="HTF Settings")
+bool htf_plotBosChoch = input.bool(true, title="Plot HTF BoS/CHoCH Lines", group="HTF Settings")
+bool htf_plotSwingPoints = input.bool(true, title="Plot HTF Swing Points", group="HTF Settings")
+
+// POI (HTF)
+string poiGroup = "HTF POI Settings"
+bool htf_plotPOI = input.bool(true, title="Plot HTF Points of Interest", group=poiGroup)
+int htf_obMaxLookback = input.int(20, title="HTF OB Max Lookback", minval=1, group=poiGroup)
+int htf_poiExtension = input.int(30, title="HTF POI Box Extension", minval=1, group=poiGroup)
+bool htf_showStrongPOI = input.bool(true, title="Show HTF Strong POIs", group=poiGroup)
+color htf_colorStrongBullishPOI = input.color(color.new(color.green, 30), title="HTF Strong Bull POI", group=poiGroup)
+color htf_colorStrongBearishPOI = input.color(color.new(color.red, 30), title="HTF Strong Bear POI", group=poiGroup)
+bool htf_showModeratePOI = input.bool(true, title="Show HTF Moderate POIs", group=poiGroup)
+color htf_colorModerateBullishPOI = input.color(color.new(color.green, 60), title="HTF Moderate Bull POI", group=poiGroup)
+color htf_colorModerateBearishPOI = input.color(color.new(color.red, 60), title="HTF Moderate Bear POI", group=poiGroup)
+bool htf_showWeakPOI = input.bool(false, title="Show HTF Weak POIs", group=poiGroup)
+color htf_colorWeakBullishPOI = input.color(color.new(color.green, 85), title="HTF Weak Bull POI", group=poiGroup)
+color htf_colorWeakBearishPOI = input.color(color.new(color.red, 85), title="HTF Weak Bear POI", group=poiGroup)
+
+// FVGs (HTF)
+string fvgGroup = "HTF FVG Settings"
+bool htf_plotFVG = input.bool(true, title="Plot HTF FVGs/Imbalances", group=fvgGroup)
+color htf_colorBullishFVG = input.color(color.new(color.blue, 88), title="HTF Bullish FVG", group=fvgGroup)
+color htf_colorBearishFVG = input.color(color.new(color.purple, 88), title="HTF Bearish FVG", group=fvgGroup)
+bool htf_showMitigatedFVGs = input.bool(false, title="Still Show HTF Mitigated FVGs", group=fvgGroup)
+color htf_colorMitigatedFVG = input.color(color.new(color.gray, 92), title="HTF Mitigated FVG", group=fvgGroup)
+int htf_maxFVGBoxes = input.int(3, "Max HTF FVG Boxes", minval=1, group=fvgGroup)
+float htf_fvgMinBodyRatio = input.float(0.3, title="HTF FVG Min Body Ratio", minval=0.1, maxval=1, step=0.1, group=fvgGroup)
+
+// Liquidity Sweeps (HTF)
+string sweepGroup = "HTF Liquidity Sweep Settings"
+bool htf_plotSweeps = input.bool(true, title="Plot HTF Liquidity Sweeps", group=sweepGroup)
+color htf_colorBullishSweep = input.color(color.new(color.teal, 0), title="HTF Bullish Sweep", group=sweepGroup)
+color htf_colorBearishSweep = input.color(color.new(color.maroon, 0), title="HTF Bearish Sweep", group=sweepGroup)
+float htf_sweepDetectionMinWickFactor = input.float(0.3, title="HTF Sweep Min Wick Factor", minval=0.01, maxval=0.99, step=0.01, group=sweepGroup)
+
+// MTF Entry Confirmation Inputs
+string mtfGroup = "Multi-Timeframe Settings"
+string ltf_timeframe_str = input.timeframe("1", title="Lower Timeframe (LTF) for Entry", group=mtfGroup)
+bool useLtfConfStrongPOI = input.bool(true, title="LTF CHoCH for Strong POI", group=mtfGroup)
+bool useLtfConfModeratePOI = input.bool(true, title="LTF CHoCH for Moderate POI", group=mtfGroup)
+int ltf_leftBars = input.int(3, title="LTF Swing Left Bars", minval=1, group=mtfGroup)
+int ltf_rightBars = input.int(3, title="LTF Swing Right Bars", minval=1, group=mtfGroup)
+int ltf_maxBarsToWatch = input.int(10, title="Max HTF Bars to Wait for LTF Conf", minval=1, maxval=50, group=mtfGroup)
+
+// Session Analysis Inputs
+string sessionGroup = "Trading Sessions"
+string asiaSessionInput = input.string("00:00-09:00", "Asia Session (HH:MM-HH:MM UTC)", group=sessionGroup)
+string londonSessionInput = input.string("07:00-16:00", "London Session (HH:MM-HH:MM UTC)", group=sessionGroup)
+string nySessionInput = input.string("13:00-22:00", "New York Session (HH:MM-HH:MM UTC)", group=sessionGroup)
+bool plotAsiaSession = input.bool(true, title="Plot Asia Session BG", group=sessionGroup)
+color colorAsiaSession = input.color(color.new(color.gray, 85), title="Asia Session BG Color", group=sessionGroup)
+bool plotLondonSession = input.bool(true, title="Plot London Session BG", group=sessionGroup)
+color colorLondonSession = input.color(color.new(color.orange, 85), title="London Session BG Color", group=sessionGroup)
+bool plotNySession = input.bool(true, title="Plot New York Session BG", group=sessionGroup)
+color colorNySession = input.color(color.new(color.purple, 85), title="New York Session BG Color", group=sessionGroup)
+bool plotAsiaRange = input.bool(true, title="Plot Asia Range (High/Low)", group=sessionGroup)
+color colorAsiaRange = input.color(color.new(color.blue, 70), title="Asia Range Line Color", group=sessionGroup)
+
+// Signal & Trade Management Inputs
+string signalGroup = "Signal & Trade Management"
+bool plotSignals = input.bool(true, title="Plot Entry Signals & SL/TP", group=signalGroup)
+float riskRewardRatio = input.float(2.0, title="Risk/Reward Ratio for TP", minval=0.1, step=0.1, group=signalGroup)
+float slBufferAtrMultiplier = input.float(0.2, title="SL Buffer (ATR Multiplier)", minval=0.0, step=0.05, group=signalGroup)
+int atrPeriodSL = input.int(14, title="ATR Period for SL Buffer (HTF)", group=signalGroup)
+
+
+// --- ATR (HTF) ---
+float htf_atr_val = ta.atr(atrPeriodSL)
+
+// --- Session Time Helper & Plotting ---
+format_session_for_time(session_input_str) => str.replace(session_input_str, ":", "", 0)
+time_in_asia = time(timeframe.period, format_session_for_time(asiaSessionInput), "UTC")
+time_in_london = time(timeframe.period, format_session_for_time(londonSessionInput), "UTC")
+time_in_ny = time(timeframe.period, format_session_for_time(nySessionInput), "UTC")
+
+if plotAsiaSession and not na(time_in_asia): bgcolor(colorAsiaSession, title="Asia Session BG")
+if plotLondonSession and not na(time_in_london): bgcolor(colorLondonSession, title="London Session BG")
+if plotNySession and not na(time_in_ny): bgcolor(colorNySession, title="NY Session BG")
+
+var float asiaHigh = na, var float asiaLow = na
+var line asiaHighLine = na, var line asiaLowLine = na
+
+if not na(time_in_asia) and na(time_in_asia[1]): asiaHigh := high; asiaLow := low // First bar of Asia
+else if not na(time_in_asia): asiaHigh := math.max(nz(asiaHigh, high), high); asiaLow := math.min(nz(asiaLow, low), low)
+
+if plotAsiaRange
+    if not na(asiaHigh) and not na(time_in_asia[1]) and na(time_in_asia) // Asia ended on previous bar
+        if not na(asiaHighLine): line.delete(asiaHighLine)
+        asiaHighLine := line.new(bar_index-1, asiaHigh, bar_index, asiaHigh, color=colorAsiaRange, style=line.style_dashed, width=1); line.set_extend(asiaHighLine, extend.right)
+        if not na(asiaLowLine): line.delete(asiaLowLine)
+        asiaLowLine := line.new(bar_index-1, asiaLow, bar_index, asiaLow, color=colorAsiaRange, style=line.style_dashed, width=1); line.set_extend(asiaLowLine, extend.right)
+    else if not na(asiaHigh) and not na(time_in_asia) // During Asia or on first bar
+        if not na(asiaHighLine): line.set_x2(asiaHighLine, bar_index)
+        if not na(asiaLowLine): line.set_x2(asiaLowLine, bar_index)
+
+
+// --- HTF Market Structure Logic (Swings, BoS/CHoCH, Sweeps, FVGs, POIs) ---
+// Swing High/Low Detection
+float htf_ph_val = ta.pivothigh(high, htf_leftBars, htf_rightBars)
+float htf_pl_val = ta.pivotlow(low, htf_leftBars, htf_rightBars)
+var float htf_lastSwingHighPrice = na, var int htf_lastSwingHighBar = na
+var float htf_lastSwingLowPrice = na, var int htf_lastSwingLowBar = na
+var float htf_secondLastSwingHighPrice = na, var int htf_secondLastSwingHighBar = na
+var float htf_secondLastSwingLowPrice = na, var int htf_secondLastSwingLowBar = na
+if (not na(htf_ph_val)): htf_secondLastSwingHighPrice := htf_lastSwingHighPrice; htf_secondLastSwingHighBar := htf_lastSwingHighBar; htf_lastSwingHighPrice := htf_ph_val; htf_lastSwingHighBar := bar_index - htf_rightBars; if htf_plotSwingPoints: label.new(htf_lastSwingHighBar, htf_lastSwingHighPrice, "H", color=color.new(htf_colorSwingHigh, 0), textcolor=htf_colorSwingHigh, style=label.style_xcross, yloc=yloc.abovebar, size=size.tiny)
+if (not na(htf_pl_val)): htf_secondLastSwingLowPrice := htf_lastSwingLowPrice; htf_secondLastSwingLowBar := htf_lastSwingLowBar; htf_lastSwingLowPrice := htf_pl_val; htf_lastSwingLowBar := bar_index - htf_rightBars; if htf_plotSwingPoints: label.new(htf_lastSwingLowBar, htf_lastSwingLowPrice, "L", color=color.new(htf_colorSwingLow, 0), textcolor=htf_colorSwingLow, style=label.style_xcross, yloc=yloc.belowbar, size=size.tiny)
+
+var line[] htf_bosChochLines = array.new_line()
+var int htf_trendDirection = 0
+var int htf_lastBosUpBar = na, var int htf_lastBosDownBar = na
+var int htf_lastChochUpBar = na, var int htf_lastChochDownBar = na
+var bool htf_lastBosWasUp = false, var bool htf_lastBosWasDown = false
+if not na(htf_lastSwingHighPrice) and not na(htf_secondLastSwingHighPrice) and high > htf_lastSwingHighPrice and htf_trendDirection != 1: l=line.new(htf_lastSwingHighBar,htf_lastSwingHighPrice,bar_index,htf_lastSwingHighPrice,htf_colorBos,line.style_dashed,1);if htf_plotBosChoch:line.set_extend(l,extend.right);label.new(bar_index,htf_lastSwingHighPrice,"BoS",label.style_label_down,color.new(htf_colorBos,30),color.white,size.tiny);array.push(htf_bosChochLines,l);htf_trendDirection:=1;htf_lastBosUpBar:=bar_index;htf_lastBosWasUp:=true;htf_lastBosWasDown:=false;htf_lastChochUpBar:=na;htf_lastChochDownBar:=na;htf_lastBosDownBar:=na
+if not na(htf_lastSwingLowPrice) and not na(htf_secondLastSwingLowPrice) and low < htf_lastSwingLowPrice and htf_trendDirection != -1: l=line.new(htf_lastSwingLowBar,htf_lastSwingLowPrice,bar_index,htf_lastSwingLowPrice,htf_colorBos,line.style_dashed,1);if htf_plotBosChoch:line.set_extend(l,extend.right);label.new(bar_index,htf_lastSwingLowPrice,"BoS",label.style_label_up,color.new(htf_colorBos,30),color.white,size.tiny);array.push(htf_bosChochLines,l);htf_trendDirection:=-1;htf_lastBosDownBar:=bar_index;htf_lastBosWasDown:=true;htf_lastBosWasUp:=false;htf_lastChochUpBar:=na;htf_lastChochDownBar:=na;htf_lastBosUpBar:=na
+if htf_trendDirection==1 and not na(htf_lastSwingLowPrice) and low < htf_lastSwingLowPrice: l=line.new(htf_lastSwingLowBar,htf_lastSwingLowPrice,bar_index,htf_lastSwingLowPrice,color.new(htf_colorBos,70),line.style_dotted,2);if htf_plotBosChoch:line.set_extend(l,extend.right);if bar_index>nz(htf_lastChochDownBar,-1):label.new(bar_index,htf_lastSwingLowPrice,"CHoCH Dn",label.style_label_up,color.new(htf_colorBos,70),color.white,size.tiny);array.push(htf_bosChochLines,l);htf_trendDirection:=-1;htf_lastChochDownBar:=bar_index;htf_lastBosWasUp:=false;htf_lastBosWasDown:=false;htf_lastBosUpBar:=na;htf_lastBosDownBar:=na
+if htf_trendDirection==-1 and not na(htf_lastSwingHighPrice) and high > htf_lastSwingHighPrice: l=line.new(htf_lastSwingHighBar,htf_lastSwingHighPrice,bar_index,htf_lastSwingHighPrice,color.new(htf_colorBos,70),line.style_dotted,2);if htf_plotBosChoch:line.set_extend(l,extend.right);if bar_index>nz(htf_lastChochUpBar,-1):label.new(bar_index,htf_lastSwingHighPrice,"CHoCH Up",label.style_label_down,color.new(htf_colorBos,70),color.white,size.tiny);array.push(htf_bosChochLines,l);htf_trendDirection:=1;htf_lastChochUpBar:=bar_index;htf_lastBosWasUp:=false;htf_lastBosWasDown:=false;htf_lastBosUpBar:=na;htf_lastBosDownBar:=na
+
+var bool htf_bullishSweepOccurredLast=false, var bool htf_bearishSweepOccurredLast=false
+htf_bullishSweepOccurredLast:=false; htf_bearishSweepOccurredLast:=false
+if not na(htf_lastSwingLowPrice[1]) and low<htf_lastSwingLowPrice[1]: htf_cr=high-low; if htf_cr>0 and (htf_lastSwingLowPrice[1]-low)/htf_cr >= htf_sweepDetectionMinWickFactor and close>htf_lastSwingLowPrice[1]: htf_bullishSweepOccurredLast:=true; if htf_plotSweeps: label.new(htf_lastSwingLowBar[1],htf_lastSwingLowPrice[1],"SLP",yloc.belowbar,htf_colorBullishSweep,htf_colorBullishSweep,label.style_label_up,size.small); plotshape(true,"HTF Bull Sweep",location.belowbar,htf_colorBullishSweep,shape.triangleup,size.tiny,offset=0)
+if not na(htf_lastSwingHighPrice[1]) and high>htf_lastSwingHighPrice[1]: htf_cr=high-low; if htf_cr>0 and (high-htf_lastSwingHighPrice[1])/htf_cr >= htf_sweepDetectionMinWickFactor and close<htf_lastSwingHighPrice[1]: htf_bearishSweepOccurredLast:=true; if htf_plotSweeps: label.new(htf_lastSwingHighBar[1],htf_lastSwingHighPrice[1],"SHP",yloc.abovebar,htf_colorBearishSweep,htf_colorBearishSweep,label.style_label_down,size.small); plotshape(true,"HTF Bear Sweep",location.abovebar,htf_colorBearishSweep,shape.triangledown,size.tiny,offset=0)
+
+var box[] htf_bullishFVGBoxes=array.new_box(), var box[] htf_bearishFVGBoxes=array.new_box()
+var float htf_lastBullishFVG_bottom=na,var float htf_lastBullishFVG_top=na,var int htf_lastBullishFVG_bar=na
+var float htf_lastBearishFVG_bottom=na,var float htf_lastBearishFVG_top=na,var int htf_lastBearishFVG_bar=na
+if htf_plotFVG and barstate.isconfirmed and bar_index>=2: htf_isStrongBullC1=close[1]>open[1] and math.abs(close[1]-open[1])/(high[1]-low[1]+nz(syminfo.mintick))>=htf_fvgMinBodyRatio; if htf_isStrongBullC1 and low[1]>high[2]: htf_fvgT=low[1];htf_fvgB=high[2];if htf_fvgT>htf_fvgB: b=box.new(bar_index-1,htf_fvgT,bar_index-1+htf_poiExtension,htf_fvgB,htf_colorBullishFVG,bgcolor=color.new(htf_colorBullishFVG,88),text="FVG Up",text_halign=text.align_center,text_valign=text.align_top,text_color=color.white,text_size=size.tiny,extend=extend.right);array.push(htf_bullishFVGBoxes,b);htf_lastBullishFVG_bottom:=htf_fvgB;htf_lastBullishFVG_top:=htf_fvgT;htf_lastBullishFVG_bar:=bar_index-1
+    htf_isStrongBearC1=close[1]<open[1] and math.abs(close[1]-open[1])/(high[1]-low[1]+nz(syminfo.mintick))>=htf_fvgMinBodyRatio; if htf_isStrongBearC1 and high[1]<low[2]: htf_fvgB=high[1];htf_fvgT=low[2];if htf_fvgT>htf_fvgB: r=box.new(bar_index-1,htf_fvgT,bar_index-1+htf_poiExtension,htf_fvgB,htf_colorBearishFVG,bgcolor=color.new(htf_colorBearishFVG,88),text="FVG Dn",text_halign=text.align_center,text_valign=text.align_bottom,text_color=color.white,text_size=size.tiny,extend=extend.right);array.push(htf_bearishFVGBoxes,r);htf_lastBearishFVG_bottom:=htf_fvgB;htf_lastBearishFVG_top:=htf_fvgT;htf_lastBearishFVG_bar:=bar_index-1
+htf_manage_fvg_array(box[] arr)=> {for i=array.size(arr)-1 to 0:b=array.get(arr,i);if na(b):array.remove(arr,i);continue; bt=box.get_top(b);bb=box.get_bottom(b);br=box.get_right(b);mit=(bt>bb and high>=bb)or(bt<bb and low<=bt);old=bar_index>br;if old or (mit and not htf_showMitigatedFVGs):box.delete(array.remove(arr,i));else if mit and htf_showMitigatedFVGs:box.set_bgcolor(b,htf_colorMitigatedFVG);box.set_border_color(b,color.new(color.gray,70));while array.size(arr)>htf_maxFVGBoxes:box.delete(array.shift(arr));}
+if htf_plotFVG and barstate.isconfirmed: htf_manage_fvg_array(htf_bullishFVGBoxes); htf_manage_fvg_array(htf_bearishFVGBoxes)
+
+var box htf_bullishPOI_Box=na, var box htf_bearishPOI_Box=na
+var float htf_activeBullPOI_top=na, var float htf_activeBullPOI_bottom=na, var int htf_activeBullPOI_left=na, var string htf_activeBullPOI_grade=""
+var float htf_activeBearPOI_top=na, var float htf_activeBearPOI_bottom=na, var int htf_activeBearPOI_left=na, var string htf_activeBearPOI_grade=""
+var bool htf_activeBullPOI_isValid=false, var bool htf_activeBearPOI_isValid=false
+if htf_plotPOI and (not na(htf_lastBosUpBar) or not na(htf_lastChochUpBar)): evBarB=not na(htf_lastBosUpBar)?htf_lastBosUpBar:htf_lastChochUpBar;if not na(htf_lastBosUpBar)and not na(htf_lastChochUpBar):evBarB:=math.max(htf_lastBosUpBar,htf_lastChochUpBar);obCBull=-1;for i=1 to htf_obMaxLookback:if bar_index-i-1<0 or bar_index-i<0 or evBarB<0:break;if evBarB>=bar_index-i and close[bar_index-i-1]>open[bar_index-i-1]and close[bar_index-i]<open[bar_index-i]:obCBull:=bar_index-i;break;if obCBull!=-1:cM=0;sP=bar_index-obCBull<=htf_obMaxLookback and htf_bullishSweepOccurredLast[bar_index-obCBull];bAB=htf_lastBosWasUp and evBarB>=obCBull;fC=not na(htf_lastBullishFVG_bar)and htf_lastBullishFVG_bar>=obCBull and htf_lastBullishFVG_bar<=obCBull+3 and htf_lastBullishFVG_bottom<=high[obCBull]and htf_lastBullishFVG_top>=low[obCBull];if sP:cM+=1;if bAB:cM+=1;if fC:cM+=1;pG=cM==3?"S":cM==2?"M":cM>=1?"W":"";pC=pG=="S"?htf_colorStrongBullishPOI:pG=="M"?htf_colorModerateBullishPOI:htf_colorWeakBullishPOI;sPOI=(pG=="S"and htf_showStrongPOI)or(pG=="M"and htf_showModeratePOI)or(pG=="W"and htf_showWeakPOI);if pG!=""and sPOI:if not na(htf_bullishPOI_Box):box.delete(htf_bullishPOI_Box);htf_activeBullPOI_top:=high[obCBull];htf_activeBullPOI_bottom:=low[obCBull];htf_activeBullPOI_left:=obCBull;htf_activeBullPOI_grade:=pG;htf_activeBullPOI_isValid:=true;htf_bullishPOI_Box:=box.new(htf_activeBullPOI_left,htf_activeBullPOI_top,htf_activeBullPOI_left+htf_poiExtension,htf_activeBullPOI_bottom,color.new(pC,30),bgcolor=color.new(pC,75),text="Bull POI ("+pG+")",text_halign=text.align_center,text_valign=text.align_middle,text_color=color.white,text_size=size.tiny,extend=extend.right);htf_lastBosUpBar:=na;htf_lastChochUpBar:=na
+if htf_plotPOI and (not na(htf_lastBosDownBar) or not na(htf_lastChochDownBar)): evBarBr=not na(htf_lastBosDownBar)?htf_lastBosDownBar:htf_lastChochDownBar;if not na(htf_lastBosDownBar)and not na(htf_lastChochDownBar):evBarBr:=math.max(htf_lastBosDownBar,htf_lastChochDownBar);obCBear=-1;for i=1 to htf_obMaxLookback:if bar_index-i-1<0 or bar_index-i<0 or evBarBr<0:break;if evBarBr>=bar_index-i and close[bar_index-i-1]<open[bar_index-i-1]and close[bar_index-i]>open[bar_index-i]:obCBear:=bar_index-i;break;if obCBear!=-1:cM=0;sP=bar_index-obCBear<=htf_obMaxLookback and htf_bearishSweepOccurredLast[bar_index-obCBear];bAB=htf_lastBosWasDown and evBarBr>=obCBear;fC=not na(htf_lastBearishFVG_bar)and htf_lastBearishFVG_bar>=obCBear and htf_lastBearishFVG_bar<=obCBear+3 and htf_lastBearishFVG_bottom<=high[obCBear]and htf_lastBearishFVG_top>=low[obCBear];if sP:cM+=1;if bAB:cM+=1;if fC:cM+=1;pG=cM==3?"S":cM==2?"M":cM>=1?"W":"";pC=pG=="S"?htf_colorStrongBearishPOI:pG=="M"?htf_colorModerateBearishPOI:htf_colorWeakBearishPOI;sPOI=(pG=="S"and htf_showStrongPOI)or(pG=="M"and htf_showModeratePOI)or(pG=="W"and htf_showWeakPOI);if pG!=""and sPOI:if not na(htf_bearishPOI_Box):box.delete(htf_bearishPOI_Box);htf_activeBearPOI_top:=high[obCBear];htf_activeBearPOI_bottom:=low[obCBear];htf_activeBearPOI_left:=obCBear;htf_activeBearPOI_grade:=pG;htf_activeBearPOI_isValid:=true;htf_bearishPOI_Box:=box.new(htf_activeBearPOI_left,htf_activeBearPOI_top,htf_activeBearPOI_left+htf_poiExtension,htf_activeBearPOI_bottom,color.new(pC,30),bgcolor=color.new(pC,75),text="Bear POI ("+pG+")",text_halign=text.align_center,text_valign=text.align_middle,text_color=color.white,text_size=size.tiny,extend=extend.right);htf_lastBosDownBar:=na;htf_lastChochDownBar:=na
+
+// --- LTF CHoCH Detection Function ---
+detectLtfChoch(open_ltf, high_ltf, low_ltf, close_ltf, isBullishHTFSignal) =>
+    ltf_ph_local = ta.pivothigh(high_ltf, ltf_leftBars, ltf_rightBars)
+    ltf_pl_local = ta.pivotlow(low_ltf, ltf_leftBars, ltf_rightBars)
+    var float ltf_sH_local = na, var float ltf_sL_local = na
+    if not na(ltf_ph_local): ltf_sH_local := ltf_ph_local
+    if not na(ltf_pl_local): ltf_sL_local := ltf_pl_local
+    ltf_choch_confirmed_local = false
+    if isBullishHTFSignal and not na(ltf_sH_local[1]) and high_ltf > ltf_sH_local[1]: ltf_choch_confirmed_local := true
+    if not isBullishHTFSignal and not na(ltf_sL_local[1]) and low_ltf < ltf_sL_local[1]: ltf_choch_confirmed_local := true
+    ltf_choch_confirmed_local
+
+// --- Signal Logic State & MTF ---
+var bool waitingForLtfConf_L = false, var int ltfConfWatchBar_L = -1
+var bool waitingForLtfConf_S = false, var int ltfConfWatchBar_S = -1
+var float triggerPoiTop_L_glob = na, var float triggerPoiBottom_L_glob = na, var string triggerPoiGrade_L_glob = ""
+var float triggerPoiTop_S_glob = na, var float triggerPoiBottom_S_glob = na, var string triggerPoiGrade_S_glob = ""
+var bool ltf_choch_bullish_signal_sec = false
+var bool ltf_choch_bearish_signal_sec = false
+
+if barstate.isconfirmed and (waitingForLtfConf_L or waitingForLtfConf_S)
+    ltf_choch_bullish_signal_sec := request.security(syminfo.tickerid, ltf_timeframe_str, detectLtfChoch(open, high, low, close, true), lookahead=barmerge.lookahead_off)
+    ltf_choch_bearish_signal_sec := request.security(syminfo.tickerid, ltf_timeframe_str, detectLtfChoch(open, high, low, close, false), lookahead=barmerge.lookahead_off)
+
+// Check for HTF POI entry
+if not na(htf_bullishPOI_Box) and htf_activeBullPOI_isValid and not inLongTrade and not inShortTrade
+    if low <= htf_activeBullPOI_top and high >= htf_activeBullPOI_bottom
+        htf_activeBullPOI_isValid := false
+        bool needsLtfConf = (htf_activeBullPOI_grade == "S" and useLtfConfStrongPOI) or (htf_activeBullPOI_grade == "M" and useLtfConfModeratePOI)
+        if needsLtfConf
+            waitingForLtfConf_L := true; ltfConfWatchBar_L := bar_index
+            triggerPoiTop_L_glob := htf_activeBullPOI_top; triggerPoiBottom_L_glob := htf_activeBullPOI_bottom; triggerPoiGrade_L_glob := htf_activeBullPOI_grade
+            box.set_bgcolor(htf_bullishPOI_Box, color.new(color.yellow, 70)); box.set_text(htf_bullishPOI_Box, "Watch LTF (L)")
+        else
+            ltf_choch_bullish_signal_sec := true
+            triggerPoiTop_L_glob := htf_activeBullPOI_top; triggerPoiBottom_L_glob := htf_activeBullPOI_bottom; triggerPoiGrade_L_glob := htf_activeBullPOI_grade
+if not na(htf_bearishPOI_Box) and htf_activeBearPOI_isValid and not inLongTrade and not inShortTrade
+    if high >= htf_activeBearPOI_bottom and low <= htf_activeBearPOI_top
+        htf_activeBearPOI_isValid := false
+        bool needsLtfConf = (htf_activeBearPOI_grade == "S" and useLtfConfStrongPOI) or (htf_activeBearPOI_grade == "M" and useLtfConfModeratePOI)
+        if needsLtfConf
+            waitingForLtfConf_S := true; ltfConfWatchBar_S := bar_index
+            triggerPoiTop_S_glob := htf_activeBearPOI_top; triggerPoiBottom_S_glob := htf_activeBearPOI_bottom; triggerPoiGrade_S_glob := htf_activeBearPOI_grade
+            box.set_bgcolor(htf_bearishPOI_Box, color.new(color.yellow, 70)); box.set_text(htf_bearishPOI_Box, "Watch LTF (S)")
+        else
+            ltf_choch_bearish_signal_sec := true
+            triggerPoiTop_S_glob := htf_activeBearPOI_top; triggerPoiBottom_S_glob := htf_activeBearPOI_bottom; triggerPoiGrade_S_glob := htf_activeBearPOI_grade
+
+// Process LTF Confirmation or Timeout
+bool ltfEntrySignal_L = false; bool ltfEntrySignal_S = false
+if waitingForLtfConf_L
+    if ltf_choch_bullish_signal_sec: ltfEntrySignal_L := true; waitingForLtfConf_L := false
+    else if bar_index > ltfConfWatchBar_L + ltf_maxBarsToWatch: waitingForLtfConf_L:=false; htf_activeBullPOI_isValid:=true; if not na(htf_bullishPOI_Box): grade_col=triggerPoiGrade_L_glob=="S"?htf_colorStrongBullishPOI:triggerPoiGrade_L_glob=="M"?htf_colorModerateBullishPOI:htf_colorWeakBullishPOI; box.set_bgcolor(htf_bullishPOI_Box,color.new(grade_col,75));box.set_text(htf_bullishPOI_Box,"Bull POI ("+triggerPoiGrade_L_glob+")")
+if waitingForLtfConf_S
+    if ltf_choch_bearish_signal_sec: ltfEntrySignal_S := true; waitingForLtfConf_S := false
+    else if bar_index > ltfConfWatchBar_S + ltf_maxBarsToWatch: waitingForLtfConf_S:=false; htf_activeBearPOI_isValid:=true; if not na(htf_bearishPOI_Box): grade_col=triggerPoiGrade_S_glob=="S"?htf_colorStrongBearishPOI:triggerPoiGrade_S_glob=="M"?htf_colorModerateBearishPOI:htf_colorWeakBearishPOI; box.set_bgcolor(htf_bearishPOI_Box,color.new(grade_col,75));box.set_text(htf_bearishPOI_Box,"Bear POI ("+triggerPoiGrade_S_glob+")")
+
+// Signal Generation
+var float entryPrice = na, var float stopLossPrice = na, var float takeProfitPrice = na
+var bool inLongTrade = false, var bool inShortTrade = false
+var line slLine = na, var line tpLine = na, var line entryLine = na
+var string currentTradeGrade = ""
+
+if plotSignals and not inLongTrade and not inShortTrade
+    if ltfEntrySignal_L or (not waitingForLtfConf_L and ltf_choch_bullish_signal_sec and triggerPoiGrade_L_glob != "" )
+        entryPrice := close; stopLossPrice := triggerPoiBottom_L_glob - htf_atr_val*slBufferAtrMultiplier; takeProfitPrice := entryPrice + (entryPrice-stopLossPrice)*riskRewardRatio
+        inLongTrade:=true; currentTradeGrade:=triggerPoiGrade_L_glob; if not na(htf_bullishPOI_Box): box.set_text(htf_bullishPOI_Box,"Used ("+currentTradeGrade+")"); box.set_border_color(htf_bullishPOI_Box, color.gray)
+        entryLine:=line.new(bar_index,entryPrice,bar_index+1,entryPrice,color.blue,width=1); slLine:=line.new(bar_index,stopLossPrice,bar_index+1,stopLossPrice,color.red,line.style_dashed,1); tpLine:=line.new(bar_index,takeProfitPrice,bar_index+1,takeProfitPrice,color.green,line.style_dashed,1)
+        label.new(bar_index,low,"LONG ("+currentTradeGrade+")",label.style_label_up,color.new(color.green,30),color.white,size=size.small)
+        ltf_choch_bullish_signal_sec := false; triggerPoiGrade_L_glob := ""
+    else if ltfEntrySignal_S or (not waitingForLtfConf_S and ltf_choch_bearish_signal_sec and triggerPoiGrade_S_glob != "")
+        entryPrice := close; stopLossPrice := triggerPoiTop_S_glob + htf_atr_val*slBufferAtrMultiplier; takeProfitPrice := entryPrice - (stopLossPrice-entryPrice)*riskRewardRatio
+        inShortTrade:=true; currentTradeGrade:=triggerPoiGrade_S_glob; if not na(htf_bearishPOI_Box): box.set_text(htf_bearishPOI_Box,"Used ("+currentTradeGrade+")"); box.set_border_color(htf_bearishPOI_Box, color.gray)
+        entryLine:=line.new(bar_index,entryPrice,bar_index+1,entryPrice,color.blue,width=1); slLine:=line.new(bar_index,stopLossPrice,bar_index+1,stopLossPrice,color.red,line.style_dashed,1); tpLine:=line.new(bar_index,takeProfitPrice,bar_index+1,takeProfitPrice,color.green,line.style_dashed,1)
+        label.new(bar_index,high,"SHORT ("+currentTradeGrade+")",label.style_label_down,color.new(color.red,30),color.white,size=size.small)
+        ltf_choch_bearish_signal_sec := false; triggerPoiGrade_S_glob := ""
+
+// Manage SL/TP lines
+if inLongTrade or inShortTrade
+    if not line.is_na(entryLine): line.set_x2(entryLine, bar_index+1); if not line.is_na(slLine): line.set_x2(slLine, bar_index+1); if not line.is_na(tpLine): line.set_x2(tpLine, bar_index+1)
+    longTp = inLongTrade and high>=takeProfitPrice; longSl = inLongTrade and low<=stopLossPrice
+    shortTp = inShortTrade and low<=takeProfitPrice; shortSl = inShortTrade and high>=stopLossPrice
+    if longTp or longSl or shortTp or shortSl
+        if not line.is_na(entryLine):line.delete(entryLine);entryLine:=na; if not line.is_na(slLine):line.delete(slLine);slLine:=na; if not line.is_na(tpLine):line.delete(tpLine);tpLine:=na
+        if longTp: label.new(bar_index,takeProfitPrice,"TP (L "+currentTradeGrade+")",label.style_label_down,color.green,color.white,size.tiny)
+        if longSl: label.new(bar_index,stopLossPrice,"SL (L "+currentTradeGrade+")",label.style_label_up,color.red,color.white,size.tiny)
+        if shortTp: label.new(bar_index,takeProfitPrice,"TP (S "+currentTradeGrade+")",label.style_label_up,color.green,color.white,size.tiny)
+        if shortSl: label.new(bar_index,stopLossPrice,"SL (S "+currentTradeGrade+")",label.style_label_down,color.red,color.white,size.tiny)
+        inLongTrade:=false;inShortTrade:=false;entryPrice:=na;currentTradeGrade:=""
+
+// Manage HTF BoS/CHoCH lines
+int maxMSSLINES = 7
+if array.size(htf_bosChochLines) > maxMSSLINES: line.delete(array.shift(htf_bosChochLines))
