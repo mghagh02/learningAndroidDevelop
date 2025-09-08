@@ -1,0 +1,38 @@
+{% extends 'store/base.html' %}
+{% load i18n %}
+
+{% block title %}{% translate "Gaming News" %} - {% translate "Game Store" %}{% endblock %}
+
+{% block content %}
+    <h2 class="mb-4">{% translate "Latest Gaming News" %}</h2>
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+        {% for article in articles %}
+            <div class="col">
+                <div class="card h-100 shadow-sm">
+                    {% if article.image_url %}
+                        <a href="{% url 'store:news_detail' article.id %}">
+                            <img src="{{ article.image_url }}" class="card-img-top" alt="{{ article.title }}" style="height: 200px; object-fit: cover;">
+                        </a>
+                    {% endif %}
+                    <div class="card-body d-flex flex-column">
+                        <h5 class="card-title">
+                            <a href="{% url 'store:news_detail' article.id %}" class="text-decoration-none text-dark">{{ article.title }}</a>
+                        </h5>
+                        <p class="card-text small text-muted">
+                            {% translate "Published on" %} {{ article.publication_date|date:"SHORT_DATE_FORMAT" }}
+                            {% if article.author %}
+                                {% blocktranslate %}by {{ article.author.username }}{% endblocktranslate %}
+                            {% endif %}
+                        </p>
+                        <p class="card-text">{{ article.content|truncatewords_html:20|safe }}</p>
+                        <a href="{% url 'store:news_detail' article.id %}" class="btn btn-link btn-sm p-0 mt-auto">{% translate 'Read More' %} &raquo;</a>
+                    </div>
+                </div>
+            </div>
+        {% empty %}
+            <div class="col">
+                <p class="alert alert-info">{% translate "No news articles yet. Check back soon!" %}</p>
+            </div>
+        {% endfor %}
+    </div>
+{% endblock %}

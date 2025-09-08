@@ -1,0 +1,57 @@
+{% extends 'store/base.html' %}
+{% load i18n %}
+
+{% block title %}{% translate 'Checkout' %} - {% translate 'Game Store' %}{% endblock %}
+
+{% block content %}
+    <h2 class="mb-4">{% translate 'Checkout Summary' %}</h2>
+    {% if cart_items %}
+        <div class="table-responsive shadow-sm bg-white rounded mb-4">
+            <table class="table align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th scope="col" class="ps-3">{% translate 'Product' %}</th>
+                        <th scope="col" class="text-center">{% translate 'Quantity' %}</th>
+                        <th scope="col" class="text-end">{% translate 'Price' %}</th>
+                        <th scope="col" class="text-end pe-3">{% translate 'Total' %}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in cart_items %}
+                        <tr>
+                            <td class="ps-3">{{ item.title }}</td>
+                            <td class="text-center">{{ item.quantity }}</td>
+                            <td class="text-end">${{ item.price|floatformat:2 }}</td>
+                            <td class="text-end pe-3">${{ item.total_item_price|floatformat:2 }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot class="table-light">
+                    <tr>
+                        <td colspan="3" class="text-end ps-3 fw-bold">{% translate 'Grand Total' %}:</td>
+                        <td class="text-end pe-3 fw-bold">${{ total_cart_price|floatformat:2 }}</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h4 class="card-title">{% translate "Confirm Order" %}</h4>
+                <p class="card-text">{% translate 'Confirm your order. Payment processing is not yet implemented.' %}</p>
+                <form method="post" action="{% url 'store:checkout' %}">
+                    {% csrf_token %}
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-success btn-lg">{% translate 'Place Order' %}</button>
+                    </div>
+                </form>
+                <p class="text-center mt-3"><a href="{% url 'store:cart_detail' %}" class="btn btn-link">{% translate 'Back to Cart' %}</a></p>
+            </div>
+        </div>
+    {% else %}
+        <div class="alert alert-warning text-center" role="alert">
+             <p class="mb-1">{% translate 'Your cart is empty. Nothing to checkout.' %}</p>
+             <a href="{% url 'store:game_list' %}" class="alert-link">{% translate 'Go Shopping!' %}</a>
+        </div>
+    {% endif %}
+{% endblock %}

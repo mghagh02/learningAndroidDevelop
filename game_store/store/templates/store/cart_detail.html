@@ -1,0 +1,66 @@
+{% extends 'store/base.html' %}
+{% load i18n %}
+
+{% block title %}{% translate 'Your Shopping Cart' %} - {% translate 'Game Store' %}{% endblock %}
+
+{% block content %}
+    <h2 class="mb-4">{% translate 'Your Shopping Cart' %}</h2>
+    {% if cart_items %}
+        <div class="table-responsive shadow-sm bg-white rounded">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th scope="col" class="ps-3">{% translate 'Product' %}</th>
+                        <th scope="col">{% translate 'Platform' %}</th>
+                        <th scope="col" class="text-end">{% translate 'Price' %}</th>
+                        <th scope="col" class="text-center">{% translate 'Quantity' %}</th>
+                        <th scope="col" class="text-end">{% translate 'Total' %}</th>
+                        <th scope="col" class="text-center pe-3">{% translate 'Actions' %}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in cart_items %}
+                        <tr>
+                            <td class="ps-3">
+                                <img src="{{ item.cover_image_url|default:'https://via.placeholder.com/50x70.png?text=No+Image' }}" alt="{{ item.title }}" style="width: 50px; height: auto; margin-right: 10px; vertical-align: middle; border-radius: 3px;">
+                                <a href="{% url 'store:game_detail' item.id %}">{{ item.title }}</a>
+                            </td>
+                            <td>{{ item.platform }}</td>
+                            <td class="text-end">${{ item.price|floatformat:2 }}</td>
+                            <td class="text-center">
+                                <form action="{% url 'store:update_cart' item.id %}" method="post" class="d-inline-flex align-items-center">
+                                    {% csrf_token %}
+                                    <input type="number" name="quantity" value="{{ item.quantity }}" min="0" max="{{ item.game_obj.stock }}" class="form-control form-control-sm" style="width: 70px;">
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary ms-2">{% translate "Update" %}</button>
+                                </form>
+                            </td>
+                            <td class="text-end">${{ item.total_item_price|floatformat:2 }}</td>
+                            <td class="text-center pe-3">
+                                <form action="{% url 'store:remove_from_cart' item.id %}" method="post" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-danger">{% translate 'Remove' %}</button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot class="table-light">
+                    <tr>
+                        <td colspan="4" class="text-end ps-3 fw-bold">{% translate 'Total Cart Price' %}:</td>
+                        <td class="text-end fw-bold">${{ total_cart_price|floatformat:2 }}</td>
+                        <td class="pe-3"></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        <div class="cart-summary-actions text-end mt-4">
+            <a href="{% url 'store:game_list' %}" class="btn btn-outline-secondary me-2">{% translate 'Continue Shopping' %}</a>
+            <a href="{% url 'store:checkout' %}" class="btn btn-success btn-lg">{% translate 'Proceed to Checkout' %}</a>
+        </div>
+    {% else %}
+        <div class="alert alert-info text-center" role="alert">
+            <p class="mb-1">{% translate 'Your cart is empty.' %}</p>
+            <a href="{% url 'store:game_list' %}" class="alert-link">{% translate 'Start shopping for games!' %}</a>
+        </div>
+    {% endif %}
+{% endblock %}

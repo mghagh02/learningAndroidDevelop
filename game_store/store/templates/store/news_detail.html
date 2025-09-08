@@ -1,0 +1,24 @@
+{% extends 'store/base.html' %}
+{% load i18n %}
+
+{% block title %}{{ article.title }} - {% translate "Game Store News" %}{% endblock %}
+
+{% block content %}
+    <div class="news-article-detail py-3">
+        <h1 class="display-5 mb-3">{{ article.title }}</h1>
+        <p class="text-muted mb-4">
+            {% translate "Published on" %} {{ article.publication_date|date:"F d, Y P" }}
+            {% if article.author %}
+                {% blocktranslate %}by {{ article.author.username }}{% endblocktranslate %}
+            {% endif %}
+        </p>
+        {% if article.image_url %}
+            <img src="{{ article.image_url }}" class="img-fluid rounded shadow-sm mb-4 mx-auto d-block" alt="{{ article.title }}" style="max-height: 450px;">
+        {% endif %}
+        <div class="article-content fs-5" style="line-height: 1.7;">
+            {{ article.content|linebreaksbr }}
+        </div>
+        <hr class="my-4">
+        <p class="mt-4"><a href="{% url 'store:news_list' %}" class="btn btn-outline-secondary">{% translate "Back to News List" %}</a></p>
+    </div>
+{% endblock %}

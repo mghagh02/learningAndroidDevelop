@@ -1,0 +1,73 @@
+{% extends 'store/base.html' %}
+{% load i18n %}
+
+{% block title %}{% translate "Games" %} - {% translate "Game Store" %}{% endblock %}
+
+{% block content %}
+    <h2 class="mb-4">{% translate "Our Games" %}</h2>
+
+    <form method="get" action="{% url 'store:game_list' %}" class="row g-3 mb-4 p-3 bg-light border rounded align-items-end">
+        <div class="col-md-4">
+            <label for="platform" class="form-label">{% translate "Platform" %}:</label>
+            <select name="platform" id="platform" class="form-select" onchange="this.form.submit()">
+                <option value="">{% translate "All Platforms" %}</option>
+                {% for p in platforms %}
+                    <option value="{{ p.name }}" {% if p.name == selected_platform %}selected{% endif %}>{{ p.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-4">
+            <label for="genre" class="form-label">{% translate "Genre" %}:</label>
+            <select name="genre" id="genre" class="form-select" onchange="this.form.submit()">
+                <option value="">{% translate "All Genres" %}</option>
+                {% for g in genres %}
+                    <option value="{{ g.name }}" {% if g.name == selected_genre %}selected{% endif %}>{{ g.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+            <noscript><button type="submit" class="btn btn-primary w-100">{% translate "Filter" %}</button></noscript>
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+             <a href="{% url 'store:game_list' %}" class="btn btn-outline-secondary w-100">{% translate "Clear Filters" %}</a>
+        </div>
+    </form>
+    <hr class="d-md-none"> {# Only show hr if form elements stack #}
+
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4">
+        {% for game in games %}
+            <div class="col">
+                <div class="card h-100 shadow-sm">
+                    <a href="{% url 'store:game_detail' game.id %}">
+                        {% if game.cover_image_url %}
+                            <img src="{{ game.cover_image_url }}" class="card-img-top" alt="{{ game.title }} {% translate 'cover' %}" style="height: 200px; object-fit: cover;">
+                        {% else %}
+                            <img src="https://via.placeholder.com/300x200.png?text={{ game.title|urlencode }}" class="card-img-top" alt="{{ game.title }} {% translate 'No Image' %}" style="height: 200px; object-fit: cover;">
+                        {% endif %}
+                    </a>
+                    <div class="card-body d-flex flex-column">
+                        <h5 class="card-title">
+                            <a href="{% url 'store:game_detail' game.id %}" class="text-decoration-none text-dark stretched-link">{{ game.title }}</a>
+                        </h5>
+                        <p class="card-text small text-muted"><strong>{% translate "Platform" %}:</strong> {{ game.platform.name }}</p>
+                        <p class="card-text small text-muted">
+                            <strong>{% translate "Genres" %}:</strong>
+                            {% for genre in game.genres.all %}
+                                {{ genre.name }}{% if not forloop.last %}, {% endif %}
+                            {% empty %}
+                                {% translate "N/A" %}
+                            {% endfor %}
+                        </p>
+                        <p class="card-text fs-5 fw-bold text-primary mt-auto mb-2">${{ game.price }}</p>
+                        <p class="card-text small"><strong>{% translate "Stock" %}:</strong> {{ game.stock }}</p>
+                        {# View Details button removed as card is a stretched-link #}
+                    </div>
+                </div>
+            </div>
+        {% empty %}
+            <div class="col">
+                <p class="alert alert-info">{% translate "No games found matching your criteria." %}</p>
+            </div>
+        {% endfor %}
+    </div>
+{% endblock %}

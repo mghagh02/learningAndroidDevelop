@@ -1,0 +1,59 @@
+{% extends 'store/base.html' %}
+{% load i18n %}
+
+{% block title %}{{ game.title }} - {% translate "Game Store" %}{% endblock %}
+
+{% block content %}
+    <div class="row g-4 py-3">
+        <div class="col-lg-5 text-center">
+            {% if game.cover_image_url %}
+                <img src="{{ game.cover_image_url }}" class="img-fluid rounded shadow-sm" alt="{{ game.title }} {% translate 'cover' %}" style="max-height: 500px;">
+            {% else %}
+                <img src="https://via.placeholder.com/400x500.png?text={{ game.title|urlencode }}" class="img-fluid rounded shadow-sm" alt="{{ game.title }} {% translate 'No Image Available' %}">
+            {% endif %}
+        </div>
+        <div class="col-lg-7">
+            <h1 class="display-5">{{ game.title }}</h1>
+            <p class="text-muted"><strong>{% translate "Platform" %}:</strong> {{ game.platform.name }}</p>
+            <p class="text-muted">
+                <strong>{% translate "Genres" %}:</strong>
+                {% for genre in game.genres.all %}
+                    {{ genre.name }}{% if not forloop.last %}, {% endif %}
+                {% empty %}
+                    {% translate "N/A" %}
+                {% endfor %}
+            </p>
+            <p class="text-muted"><strong>{% translate "Release Date" %}:</strong> {{ game.release_date|date:"F d, Y" }}</p>
+            <p class="fs-3 fw-bold text-primary my-3">${{ game.price }}</p>
+            <p class="stock-status {% if game.stock > 0 %}text-success{% else %}text-danger{% endif %}">
+                <strong>{% translate "Stock" %}:</strong>
+                {% if game.stock > 0 %}
+                    {{ game.stock }} {% translate "available" %}
+                {% else %}
+                    {% translate "Out of stock" %}
+                {% endif %}
+            </p>
+
+            {% if game.stock > 0 %}
+                <form action="{% url 'store:add_to_cart' game.id %}" method="post" class="row g-2 align-items-center my-3">
+                    {% csrf_token %}
+                    <div class="col-auto">
+                        <label for="quantity" class="form-label visually-hidden">{% translate "Quantity" %}:</label>
+                        <input type="number" name="quantity" value="1" min="1" max="{{ game.stock }}" class="form-control" style="width: 80px;">
+                    </div>
+                    <div class="col-auto">
+                        <button type="submit" class="btn btn-success btn-lg">{% translate "Add to Cart" %}</button>
+                    </div>
+                </form>
+            {% else %}
+                <p class="alert alert-danger">{% translate "This game is currently out of stock." %}</p>
+            {% endif %}
+
+            <hr class="my-4">
+            <h3>{% translate "Description" %}:</h3>
+            <p>{{ game.description|linebreaks }}</p>
+
+            <p class="mt-4"><a href="{% url 'store:game_list' %}" class="btn btn-outline-secondary">{% translate "Back to Game List" %}</a></p>
+        </div>
+    </div>
+{% endblock %}
